@@ -1,12 +1,12 @@
 # Define rabbit_asg_policy
 resource "aws_iam_policy" "rabbit_asg_policy" {
-  name   = "rabbit_asg_policy"
+  name = "rabbit_asg_policy"
   policy = jsonencode({
     Version = "2012-10-17",
     Statement = [
       {
-        Effect   = "Allow",
-        Action   = [
+        Effect = "Allow",
+        Action = [
           "autoscaling:DescribeAutoScalingInstances",
           "ec2:DescribeInstances",
         ],
@@ -18,13 +18,13 @@ resource "aws_iam_policy" "rabbit_asg_policy" {
 
 # Define rabbit_asg_logging_policy
 resource "aws_iam_policy" "rabbit_asg_logging_policy" {
-  name   = "rabbit_asg_logging_policy"
+  name = "rabbit_asg_logging_policy"
   policy = jsonencode({
     Version = "2012-10-17",
     Statement = [
       {
-        Effect   = "Allow",
-        Action   = [
+        Effect = "Allow",
+        Action = [
           "logs:CreateLogGroup",
           "logs:CreateLogStream",
           "logs:DescribeLogGroups",
@@ -79,17 +79,17 @@ resource "aws_iam_role_policy_attachment" "ec2_container_registry_full_access" {
 
 
 resource "aws_lb" "name" {
-    name               = "example-lb"
-    internal           = false
-    load_balancer_type = "application"
-    subnets            = ["subnet-02afb2885082aabaf", "subnet-024bee7d7c80272a9"]
-    security_groups    = [aws_security_group.example_sg.id]
+  name               = "example-lb"
+  internal           = false
+  load_balancer_type = "application"
+  subnets            = ["subnet-0b1cad40369f5a5dd", "subnet-0caad619a10a3d000"]
+  security_groups    = [aws_security_group.example_sg.id]
 }
 
 resource "aws_lb_target_group" "rabbitmq_tg" {
   name     = "rabbitmq-tg"
-  port     = 15672  
-  vpc_id   = "vpc-02249be70919abaa2"  
+  port     = 15672
+  vpc_id   = "vpc-0ce7ca8cbeba6b3d4"
   protocol = "HTTP"
 
   health_check {
@@ -104,37 +104,37 @@ resource "aws_lb_target_group" "rabbitmq_tg" {
 
 resource "aws_lb_listener" "alb_listener" {
   load_balancer_arn = aws_lb.name.arn
-  port              = 15672 
+  port              = 15672
   protocol          = "HTTP"
 
   default_action {
     type             = "forward"
-    target_group_arn = aws_lb_target_group.rabbitmq_nlb_tg.arn
+    target_group_arn = aws_lb_target_group.rabbitmq_tg.arn
   }
 }
 
 resource "aws_lb" "rabbitmq_internal_nlb" {
-  name               = "rabbitmq-internal-nlb"
-  internal           = true  # Set to true if you want the NLB to be internal
-  load_balancer_type = "network"
-  subnets            = ["subnet-02afb2885082aabaf", "subnet-024bee7d7c80272a9"]
+  name                             = "rabbitmq-internal-nlb"
+  internal                         = true # Set to true if you want the NLB to be internal
+  load_balancer_type               = "network"
+  subnets                          = ["subnet-0b1cad40369f5a5dd", "subnet-0caad619a10a3d000"]
   enable_cross_zone_load_balancing = false
-  security_groups = [aws_security_group.example_sg.id]
+  security_groups                  = [aws_security_group.example_sg.id]
 }
 
 
 
 resource "aws_lb_target_group" "rabbitmq_nlb_tg" {
   name     = "rabbitmq-nlb-tg"
-  port     = 5672  # Ensure this is the correct port for your application
-  vpc_id   = "vpc-02249be70919abaa2"
+  port     = 5672 # Ensure this is the correct port for your application
+  vpc_id   = "vpc-0ce7ca8cbeba6b3d4"
   protocol = "TCP"
 
   health_check {
     enabled             = true
     interval            = 30
     port                = "traffic-port"
-    protocol            = "TCP"  # Make sure this matches the protocol of your service
+    protocol            = "TCP" # Make sure this matches the protocol of your service
     healthy_threshold   = 3
     unhealthy_threshold = 3
   }
@@ -142,11 +142,11 @@ resource "aws_lb_target_group" "rabbitmq_nlb_tg" {
 
 resource "aws_lb_listener" "nlb_listener" {
   load_balancer_arn = aws_lb.rabbitmq_internal_nlb.arn
-  port              = 5672  # The listening port for your NLB
+  port              = 5672 # The listening port for your NLB
   protocol          = "TCP"
 
   default_action {
-    type = "foward"
+    type             = "forward"
     target_group_arn = aws_lb_target_group.rabbitmq_nlb_tg.arn
   }
 }
@@ -159,8 +159,8 @@ resource "aws_launch_template" "example" {
   name          = "example-template"
   image_id      = var.ami
   instance_type = var.instance_type
-  key_name      = "mykey"
-  user_data = base64encode(data.template_file.init.rendered)
+  key_name      = "ShiraDevOps_key"
+  user_data     = base64encode(data.template_file.init.rendered)
 
 
   vpc_security_group_ids = [aws_security_group.example_sg.id]
@@ -175,12 +175,12 @@ resource "aws_launch_template" "example" {
   tag_specifications {
     resource_type = "instance"
     tags = {
-      Name = "Rabbitmq-Cluster"
+      Name    = "Rabbitmq-Cluster"
       service = "rabbitmq"
       // Additional tags can be added here
     }
   }
- 
+
   iam_instance_profile {
     name = aws_iam_instance_profile.rabbit_instance_profile.name
   }
@@ -231,8 +231,8 @@ listeners.tcp.default = 5672
 cluster_formation.peer_discovery_backend = aws
 cluster_formation.aws.region = eu-central-1
 cluster_formation.aws.use_autoscaling_group = true
-cluster_formation.aws.access_key_id = ${aws_access_key_id}
-cluster_formation.aws.secret_key = ${aws_secret_access_key}
+cluster_formation.aws.access_key_id = var.aws_access_key_id
+cluster_formation.aws.secret_key    = var.aws_secret_access_key
 ZOF
 
 # Create a volume and create a temp container and move the configuration file to volume
@@ -282,28 +282,28 @@ resource "aws_security_group" "example_sg" {
 }
 
 resource "aws_security_group_rule" "rule1" {
-  type        = "ingress"
-  from_port   = 35197
-  to_port     = 35197
-  protocol    = "tcp"
-  cidr_blocks = ["0.0.0.0/0"]
+  type              = "ingress"
+  from_port         = 35197
+  to_port           = 35197
+  protocol          = "tcp"
+  cidr_blocks       = ["0.0.0.0/0"]
   security_group_id = aws_security_group.example_sg.id
 }
 
 resource "aws_security_group_rule" "rule15" {
-  type        = "ingress"
-  from_port   = 15672 
-  to_port     = 15672 
-  protocol    = "tcp"
-  cidr_blocks = ["0.0.0.0/0"]
+  type              = "ingress"
+  from_port         = 15672
+  to_port           = 15672
+  protocol          = "tcp"
+  cidr_blocks       = ["0.0.0.0/0"]
   security_group_id = aws_security_group.example_sg.id
 }
 resource "aws_security_group_rule" "rule18" {
-  type        = "ingress"
-  from_port   = 4369  
-  to_port     = 4369  
-  protocol    = "tcp"
-  cidr_blocks = ["0.0.0.0/0"]
+  type              = "ingress"
+  from_port         = 4369
+  to_port           = 4369
+  protocol          = "tcp"
+  cidr_blocks       = ["0.0.0.0/0"]
   security_group_id = aws_security_group.example_sg.id
 }
 
@@ -313,54 +313,54 @@ resource "aws_security_group_rule" "egress_all" {
   type              = "egress"
   from_port         = 0
   to_port           = 0
-  protocol          = "-1"  # -1 signifies all protocols
+  protocol          = "-1" # -1 signifies all protocols
   cidr_blocks       = ["0.0.0.0/0"]
   security_group_id = aws_security_group.example_sg.id
 }
 
 
 resource "aws_security_group_rule" "rule2" {
-  type        = "ingress"
-  from_port   = 5672
-  to_port     = 5672
-  protocol    = "tcp"
-  cidr_blocks = ["0.0.0.0/0"]
+  type              = "ingress"
+  from_port         = 5672
+  to_port           = 5672
+  protocol          = "tcp"
+  cidr_blocks       = ["0.0.0.0/0"]
   security_group_id = aws_security_group.example_sg.id
 }
 
 resource "aws_security_group_rule" "ssh" {
-  type        = "ingress"
-  from_port   = 22
-  to_port     = 22
-  protocol    = "tcp"
-  cidr_blocks = ["0.0.0.0/0"]
+  type              = "ingress"
+  from_port         = 22
+  to_port           = 22
+  protocol          = "tcp"
+  cidr_blocks       = ["0.0.0.0/0"]
   security_group_id = aws_security_group.example_sg.id
 }
 
 resource "aws_security_group_rule" "http" {
-  type        = "ingress"
-  from_port   = 80
-  to_port     = 80
-  protocol    = "tcp"
-  cidr_blocks = ["0.0.0.0/0"]
+  type              = "ingress"
+  from_port         = 80
+  to_port           = 80
+  protocol          = "tcp"
+  cidr_blocks       = ["0.0.0.0/0"]
   security_group_id = aws_security_group.example_sg.id
 }
 
 resource "aws_security_group_rule" "https" {
-  type        = "ingress"
-  from_port   = 443
-  to_port     = 443
-  protocol    = "tcp"
-  cidr_blocks = ["0.0.0.0/0"]
+  type              = "ingress"
+  from_port         = 443
+  to_port           = 443
+  protocol          = "tcp"
+  cidr_blocks       = ["0.0.0.0/0"]
   security_group_id = aws_security_group.example_sg.id
 }
 
 resource "aws_autoscaling_group" "example" {
-  name                 = "example-asg"
-  max_size             = 3
-  min_size             = 1
-  desired_capacity     = 2
-  vpc_zone_identifier  = ["subnet-02afb2885082aabaf", "subnet-024bee7d7c80272a9"]
+  name                = "example-asg"
+  max_size            = 3
+  min_size            = 1
+  desired_capacity    = 2
+  vpc_zone_identifier = ["subnet-0b1cad40369f5a5dd", "subnet-0caad619a10a3d000"]
 
 
   launch_template {
@@ -387,7 +387,7 @@ resource "aws_cloudwatch_metric_alarm" "example_high_cpu" {
   statistic           = "Average"
   threshold           = "80"
   alarm_description   = "This metric monitors ec2 cpu usage"
-  alarm_actions = [aws_autoscaling_policy.example.arn]
+  alarm_actions       = [aws_autoscaling_policy.example.arn]
 }
 
 resource "aws_cloudwatch_metric_alarm" "example_low_cpu" {
@@ -404,5 +404,11 @@ resource "aws_cloudwatch_metric_alarm" "example_low_cpu" {
     AutoScalingGroupName = aws_autoscaling_group.example.name
   }
   alarm_actions = [aws_autoscaling_policy.example.arn]
+}
+
+resource "aws_subnet" "example" {
+  vpc_id            = "vpc-0ce7ca8cbeba6b3d4"
+  cidr_block        = "10.0.32.0/20"
+  availability_zone = "us-east-1a"
 }
 

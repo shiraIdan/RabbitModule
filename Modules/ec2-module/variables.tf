@@ -21,5 +21,10 @@ variable "docker_image" {
 variable "my_vpc_id" {
   description = "The ID of the VPC in which to create the Route 53 zone"
   type        = string
-  
+
 }
+variable "subnet_id" {
+  description = "The ID of the Subnet to use for the EC2 instance"
+  type        = string
+}
+
